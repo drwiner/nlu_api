@@ -2,8 +2,10 @@
 This is a python wrapper for Kasisto NLU API Request
 """
 
-import requests
 
+import json
+import requests
+from clockdecolpy import clock
 
 URL = "http://localhost:8090/kai/api/v1/nlu"
 
@@ -25,9 +27,9 @@ REQUEST_TEMPLATE={
             }
         },
         "user_context": {
-            "user_id": "andrew",
-            "token": "test",
-            "token_type": "kai",
+            "user_id": "test",
+            "token": "tokenTD2",
+            "token_type": "enterprise",
         }
     }
 }
@@ -43,6 +45,7 @@ class NluRequest:
     def load(self, utterance):
         self.body['vpa_request']["question"] = utterance
 
+    @clock
     def post(self):
         return make_request(URL, self.header, self.body)
 
@@ -61,8 +64,26 @@ def NluApi(utterance):
     response = NLU.post()
     return response
 
+@clock
+def reqPost(url, body, headers):
+    return requests.post(url, json=body, headers=headers)
+
+
+def prettyprint(jsonstuff):
+    parsed = json.loads(jsonstuff)
+    print(json.loads(parsed, indent=4, sort_keys=True))
+
 def make_request(url, headers, body):
-    r = requests.post(url, json=body, headers=headers)
+    print('\n\n\n\n')
+
+    print(url)
+    print(body)
+
+    # prettyprint(json.dumps(str(body)))
+    r = reqPost(url, body, headers)
+    # prettyprint(str(r))
+
+    print('\n\n\n\n')
     print(r.status_code, r.reason)
     if r.text == 'null':
         print(body)

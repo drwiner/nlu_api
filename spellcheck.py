@@ -1,6 +1,10 @@
 
 from nlu_api import NluApi
 
+from collections import namedtuple
+
+ResultTuple = namedtuple("result", "index originalQ originalA tokenizedQ tokenizedA spellcheckedQ".split())
+
 def stat_to_string(utterance):
     response_dict = NluApi(utterance)
     print('inputstring\t\t', response_dict['parserOutputs'][1]['wordgraph_obj']['inputString'])
@@ -12,6 +16,18 @@ def extractSpellCheck(utterance):
     original = response_dict['parserOutputs'][1]['wordgraph_obj']['inputString']
     featurized = response_dict['parserOutputs'][1]['wordgraph_flat']
     return (original, featurized)
+
+
+resultStringFormat = "\n{}:\noriginal\nQ:\t{}\nA:\t{}\ntokenized\nQ:\t{}\nA:\t{}\nspellcheck\n{}\n"
+
+class Result:
+    def __init__(self, index, oQ, oA, tQ, tA, sQ):
+        self.r = ResultTuple(index, oQ, oA, tQ, tA, sQ)
+
+    def __str__(self):
+        r = self.r
+        return resultStringFormat.format(r.index, r.originalQ, r.originalA, r.tokenizedQ, r.tokenizedA, r.spellcheckedQ)
+
 
 if __name__ == "__main__":
     # utterance1 = "I want to watch a mavie"
@@ -49,53 +65,78 @@ if __name__ == "__main__":
     incorrect_examples_shouldbe_untouched = []
     incorrect_examples_shouldbe_touched = []
 
-    for q, a in qas.items():
+    correct_examples_shouldbe_touched= []
+    correct_examples_shouldbe_untouched = []
+
+    for i, (q, a) in enumerate(qas.items()):
+        # if i == 3:
+        #     break
         q_string, q_corrected = extractSpellCheck(q)
         a_string, _ = extractSpellCheck(a)
+        r = Result(i, q, a, q_string, a_string, q_corrected)
+        print(r)
         if q_string == a_string:
             shouldbe_untouched += 1
             # shoudl be untouched
             if q_corrected == a_string:
                 # should be untouched, is untouched
                 shouldbe_untouched_is_untouched += 1
+                correct_examples_shouldbe_untouched.append(r)
+
             else:
                 shouldbe_untouched_incorrect += 1
-                incorrect_examples_shouldbe_untouched.append((q_corrected, a_string))
+                incorrect_examples_shouldbe_untouched.append(r)
         else:
             shouldbe_touched += 1
             # should be touched
             if q_corrected == a_string:
                 # is touched_and_correct
                 shouldbe_touched_is_touched += 1
+                correct_examples_shouldbe_touched.append(r)
             else:
                 shouldbe_touched_incorrect += 1
-                incorrect_examples_shouldbe_touched.append((q_corrected,a_string))
+                incorrect_examples_shouldbe_touched.append(r)
 
-
-    with open('spellcheck_results_stored_2.txt', 'w') as file:
+    with open('spellcheck_results_stored_precision_recall.txt', 'w') as file:
         file.write("touched\n")
-        precision = shouldbe_touched_is_touched / (shouldbe_untouched_incorrect + shouldbe_touched_is_touched)
+        denom =  shouldbe_untouched_incorrect + shouldbe_touched_is_touched
+        if denom == 0:
+            precision = 0
+        else:
+            precision = shouldbe_touched_is_touched / (shouldbe_untouched_incorrect + shouldbe_touched_is_touched)
         file.write("precision:\t {}/{}, {}\n".format(shouldbe_touched_is_touched,
                                                      (shouldbe_untouched_incorrect + shouldbe_touched_is_touched),
                                                      precision))
-        recall = shouldbe_touched_is_touched / shouldbe_touched
+        if shouldbe_touched:
+            recall = 0
+        else:
+            recall = shouldbe_touched_is_touched / shouldbe_touched
         file.write('recall\t {}/{}, {}\n'.format(shouldbe_touched_is_touched, shouldbe_touched, recall))
-
         file.write("untouched\n")
-        precision = shouldbe_untouched_is_untouched / (shouldbe_touched_incorrect + shouldbe_untouched_is_untouched)
+
+        if (shouldbe_touched_incorrect + shouldbe_untouched_is_untouched) == 0:
+            precision = 0
+        else:
+            precision = shouldbe_untouched_is_untouched / (shouldbe_touched_incorrect + shouldbe_untouched_is_untouched)
         file.write("precision:\t {}/{}, {}\n".format(shouldbe_untouched_is_untouched,
                                                      (shouldbe_touched_incorrect + shouldbe_untouched_is_untouched),
                                                      precision))
-        recall = shouldbe_untouched_is_untouched / shouldbe_untouched
+        if (shouldbe_untouched == 0):
+            recall = 0
+        else:
+            recall = shouldbe_untouched_is_untouched / shouldbe_untouched
         file.write('recall\t {}/{}, {}\n'.format(shouldbe_untouched_is_untouched, shouldbe_untouched, recall))
 
-        print("\n\n")
+    doubleline = "\n\n"
+    cats = ["correct, untouched", "incorrect, touched", "correct, touched", "incorrect_untouched"]
+    lists = [correct_examples_shouldbe_untouched, incorrect_examples_shouldbe_touched, correct_examples_shouldbe_touched, incorrect_examples_shouldbe_untouched]
+    with open("spellcheck_log.txt", 'w') as file:
+        for (cat, lit) in zip(cats, lists):
+            for item in lit:
+                file.write(str(item))
+                file.write("label:\t{}".format(cat))
+                file.write(doubleline)
 
-        print("incorrect_examples_shouldbe_touched\n\n")
-        file.write(str(incorrect_examples_shouldbe_touched))
-
-        print("\n\nincorrect_examples_shouldbe_untouched\n\n")
-        file.write(str(incorrect_examples_shouldbe_untouched))
 
 
     print('ok')
