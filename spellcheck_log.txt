@@ -1,0 +1,36 @@
+
+0:
+original
+Q:	Hello, i want to see my saving account, because my friend need to transfer.
+A:	Hello, i want to see my saving account, because my friend need to transfer.
+tokenized
+Q: hello i want to see my saving account because my friend need to transfer
+A:	hello i want to see my saving account because my friend need to transfer
+spellcheck
+hello i want to see my saving account because my friend need to transfer
+label:	correct, untouched
+
+
+1:
+original
+Q:	what is the interest rate on my checking account ending six zero four zero
+A:	what is the interest rate on my checking account ending six zero four zero
+tokenized
+Q: what is the interest rate on my checking account ending six zero four zero
+A:	what is the interest rate on my checking account ending six zero four zero
+spellcheck
+what is the interest rate on my checking account ending six zero four zero
+label:	correct, untouched
+
+
+2:
+original
+Q:	Why i dont have balance even when i have much balance in my bank account
+A:	Why i don't have balance even when i have much balance in my bank account
+tokenized
+Q: why i dont have balance even when i have much balance in my bank account
+A:	why i do not have balance even when i have much balance in my bank account
+spellcheck
+why i dont have balance even when i have much balance in my bank account
+label:	incorrect, touched
+
