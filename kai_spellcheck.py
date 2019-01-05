@@ -5,6 +5,7 @@ from collections import namedtuple
 
 ResultTuple = namedtuple("result", "index originalQ originalA tokenizedQ tokenizedA spellcheckedQ".split())
 
+
 def stat_to_string(utterance):
     response_dict = NluApi(utterance)
     print('inputstring\t\t', response_dict['parserOutputs'][1]['wordgraph_obj']['inputString'])
@@ -18,15 +19,67 @@ def extractSpellCheck(utterance):
     return (original, featurized)
 
 
+#0 49:
+#1 original
+#2 Q:	What is my ATM withdrawal limit?
+#3 A:	What is my ATM withdrawal limit?
+#4 tokenized
+#5 Q:	what is my atm withdrawal limit
+#6 A:	what is my atm withdrawal limit
+#7 spellcheck
+#8 what is my atm withdrawal limit
+#9 label:	correct, untouched
+
+
+def create_result_from_string(item):
+    split_item = [line for line in item.splitlines() if line != "" and line != "\'"]
+    index = int(split_item[0][:-1])
+    oQ = split_item[2].split("\t")[1]
+    oA = split_item[3].split("\t")[1]
+    tQ = split_item[5].split("\t")[1]
+    tA = split_item[6].split("\t")[1]
+    sQ = split_item[8]
+    return Result(index,oQ,oA,tQ,tA,sQ)
+    
 resultStringFormat = "\n{}:\noriginal\nQ:\t{}\nA:\t{}\ntokenized\nQ:\t{}\nA:\t{}\nspellcheck\n{}\n"
 
+
+'''
+Read-only SpellCheck result
+A class that wraps a named tuple
+'''
 class Result:
     def __init__(self, index, oQ, oA, tQ, tA, sQ):
         self.r = ResultTuple(index, oQ, oA, tQ, tA, sQ)
+        self.field_dict = {k: self.r[self.r._fields.index(k)] for k in self.r._fields}
+        
+    
+    def was_touched(self):
+        return self.tokenizedQ != self.tokenizedA
+    
+    def was_correct(self):
+        return self.tokenizedA != self.spellcheckedQ
+    
+    def correct_touched(self):
+        return self.was_touched() and self.was_correct()
+    
+    def incorrect_touched(self):
+        return self.was_touched() and not self.was_correct()
+    
+    def correct_untouched(self):
+        return not self.was_touched() and self.was_correct()
+    
+    def incorrect_untouched(self):
+        return not self.was_touched() and not self.was_correct()
 
+    def __getattr__(self, attr):
+        return self.field_dict[attr]
+    
+    def __repr__(self):
+        return self.__str__()
+        
     def __str__(self):
-        r = self.r
-        return resultStringFormat.format(r.index, r.originalQ, r.originalA, r.tokenizedQ, r.tokenizedA, r.spellcheckedQ)
+        return resultStringFormat.format(self.r.index, self.r.originalQ, self.r.originalA, self.r.tokenizedQ, self.r.tokenizedA, self.r.spellcheckedQ)
 
 
 if __name__ == "__main__":
